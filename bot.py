@@ -1,52 +1,28 @@
+import os
 import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import logging
-import signal
-import sys
 
-TOKEN = "TU TOKEN"
-ADMIN_ID = TU ID
+# Obtener variables de entorno
+TOKEN = os.environ.get('TOKEN')
+ADMIN_ID = int(os.environ.get('ADMIN_ID'))  # Convertir a entero
 
+# Logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('👋👋 ¡Hola! 👋👋 Envíame tu mensaje y te responderé lo más pronto posible. ☺️☺️')
-
-async def delete_message_later(message, delay):
-    await asyncio.sleep(delay)
-    try:
-        await message.delete()
-    except Exception as e:
-        logger.error(f"Error al eliminar mensaje: {e}")
-
-async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=f"Mensaje de {user.first_name} (ID: {user.id}):\n\n{update.message.text}"
-    )
-    confirm_message = await update.message.reply_text("✅ Mensaje recibido. Te responderé pronto 😉")
-    
-    asyncio.create_task(delete_message_later(confirm_message, 5))
-
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if str(update.effective_user.id) != str(ADMIN_ID):
-        return
-    
-    try:
-        user_id = context.args[0]
-        message = ' '.join(context.args[1:])
-        await context.bot.send_message(chat_id=user_id, text=message)
-        await update.message.reply_text("Mensaje enviado.")
-    except:
-        await update.message.reply_text("Uso: /reply ID_USUARIO mensaje")
+# El resto de tu código se mantiene igual...
 
 def main():
+    # Verificar que las variables de entorno existen
+    if not TOKEN or not ADMIN_ID:
+        logger.error("Token o ADMIN_ID no configurados en variables de entorno")
+        return
+
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
@@ -54,7 +30,7 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_message))
 
     print("Bot iniciado. Presiona Ctrl+C para detener.")
-    application.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
     try:
